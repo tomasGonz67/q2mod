@@ -618,7 +618,10 @@ qboolean Pickup_Armor (edict_t *ent, edict_t *other)
 
 	old_armor_index = ArmorIndex (other);
 
+	gclient_t* cl = other->client;
+	int maxArmor = cl->pers.max_armor;
 	// handle armor shards specially
+
 	if (ent->item->tag == ARMOR_SHARD)
 	{
 		if (!old_armor_index)
@@ -630,7 +633,9 @@ qboolean Pickup_Armor (edict_t *ent, edict_t *other)
 	// if player has no armor, just use it
 	else if (!old_armor_index)
 	{
-		other->client->pers.inventory[ITEM_INDEX(ent->item)] = newinfo->base_count;
+		int give = newinfo->base_count;
+		if (give > maxArmor) give = maxArmor;
+		other->client->pers.inventory[ITEM_INDEX(ent->item)] = give;
 	}
 
 	// use the better armor
@@ -650,8 +655,8 @@ qboolean Pickup_Armor (edict_t *ent, edict_t *other)
 			salvage = oldinfo->normal_protection / newinfo->normal_protection;
 			salvagecount = salvage * other->client->pers.inventory[old_armor_index];
 			newcount = newinfo->base_count + salvagecount;
-			if (newcount > newinfo->max_count)
-				newcount = newinfo->max_count;
+			if (newcount > maxArmor)
+				newcount = maxArmor;
 
 			// zero count of old armor so it goes away
 			other->client->pers.inventory[old_armor_index] = 0;

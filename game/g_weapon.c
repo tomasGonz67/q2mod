@@ -151,7 +151,7 @@ static void fire_lead (edict_t *self, vec3_t start, vec3_t aimdir, int damage, i
 
 		r = crandom()*hspread;
 		u = crandom()*vspread;
-		VectorMA (start, 8192, forward, end);
+		VectorMA (start, 175, forward, end);
 		VectorMA (end, r, right, end);
 		VectorMA (end, u, up, end);
 
@@ -370,7 +370,7 @@ void fire_blaster (edict_t *self, vec3_t start, vec3_t dir, int damage, int spee
 	bolt->s.sound = gi.soundindex ("misc/lasfly.wav");
 	bolt->owner = self;
 	bolt->touch = blaster_touch;
-	bolt->nextthink = level.time + 2;
+	bolt->nextthink = level.time + (100.0f/500.0f);
 	bolt->think = G_FreeEdict;
 	bolt->dmg = damage;
 	bolt->classname = "bolt";
@@ -463,21 +463,7 @@ static void Grenade_Touch (edict_t *ent, edict_t *other, cplane_t *plane, csurfa
 		return;
 	}
 
-	if (!other->takedamage)
-	{
-		if (ent->spawnflags & 1)
-		{
-			if (random() > 0.5)
-				gi.sound (ent, CHAN_VOICE, gi.soundindex ("weapons/hgrenb1a.wav"), 1, ATTN_NORM, 0);
-			else
-				gi.sound (ent, CHAN_VOICE, gi.soundindex ("weapons/hgrenb2a.wav"), 1, ATTN_NORM, 0);
-		}
-		else
-		{
-			gi.sound (ent, CHAN_VOICE, gi.soundindex ("weapons/grenlb1b.wav"), 1, ATTN_NORM, 0);
-		}
-		return;
-	}
+
 
 	ent->enemy = other;
 	Grenade_Explode (ent);

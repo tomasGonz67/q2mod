@@ -318,10 +318,9 @@ void HelpComputer (edict_t *ent)
 		"xv 32 yv 8 picn help "			// background
 		"xv 202 yv 12 string2 \"%s\" "		// skill
 		"xv 0 yv 24 cstring2 \"%s\" "		// level name
-		"xv 0 yv 54 cstring2 \"%s\" "		// help 1
-		"xv 0 yv 110 cstring2 \"%s\" "		// help 2
-		"xv 50 yv 164 string2 \" kills     goals    secrets\" "
-		"xv 50 yv 172 string2 \"%3i/%3i     %i/%i       %i/%i\" ", 
+		"xv 0 yv 54 cstring2 \"Welcome to Fantasy Mod.\n 1 monster=50 exp. \n 100 exp per level up.\n max level 6\" "		// help 1
+		"xv 0 yv 110 cstring2 \"Every level unlocks\n a new ability boost.\" "		// help 2
+		, 
 		sk,
 		level.level_name,
 		game.helpmessage1,
@@ -386,6 +385,9 @@ void G_SetStats (edict_t *ent)
 	ent->client->ps.stats[STAT_HEALTH_ICON] = level.pic_health;
 	ent->client->ps.stats[STAT_HEALTH] = ent->health;
 
+	//mod
+	ent->client->ps.stats[STAT_LEVEL] = ent->client->pers.level;
+	ent->client->ps.stats[STAT_BOOSTS] = ent->client->pers.level;
 	//
 	// ammo
 	//

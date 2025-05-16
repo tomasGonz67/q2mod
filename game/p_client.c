@@ -615,17 +615,21 @@ void InitClientPersistant (gclient_t *client)
 	client->pers.inventory[client->pers.selected_item] = 1;
 
 	client->pers.weapon = item;
-
+	client->pers.health_regen = 1.0f;
+	client->pers.speed_multiplier = 1.0f;
+	client->pers.damage_multiplier = 1.0f;
 	client->pers.health			= 100;
 	client->pers.max_health		= 100;
-
+	client->pers.max_armor		= 250;
 	client->pers.max_bullets	= 200;
 	client->pers.max_shells		= 100;
 	client->pers.max_rockets	= 50;
 	client->pers.max_grenades	= 50;
 	client->pers.max_cells		= 200;
 	client->pers.max_slugs		= 50;
-
+	client->pers.level			= 1;
+	client->pers.heal_amount	= 0;
+	client->pers.xp 			= 0;
 	client->pers.connected = true;
 }
 
@@ -1109,7 +1113,6 @@ void PutClientInServer (edict_t *ent)
 	// do it before setting health back up, so farthest
 	// ranging doesn't count this client
 	SelectSpawnPoint (ent, spawn_origin, spawn_angles);
-
 	index = ent-g_edicts-1;
 	client = ent->client;
 
@@ -1155,7 +1158,7 @@ void PutClientInServer (edict_t *ent)
 	if (client->pers.health <= 0)
 		InitClientPersistant(client);
 	client->resp = resp;
-
+	client->armor_multiplier = 1.0f;
 	// copy some data from the client to the entity
 	FetchClientEntData (ent);
 
@@ -1762,6 +1765,27 @@ void ClientBeginServerFrame (edict_t *ent)
 
 	client = ent->client;
 
+	char buf[64];
+	Com_sprintf(buf, sizeof(buf),
+		"Level %d/6\n"
+		"Boosts unlocked: %d/6\n",
+		client->pers.level,        // X
+		client->pers.level  // Y
+	);
+	gi.centerprintf(ent, "%s", buf);
+
+	if (ent->health > 0
+		&& ent->health < client->pers.max_health
+		&& level.time >= client->next_heal_time)
+	{
+		ent->health += client->pers.heal_amount;
+		if (ent->health > client->pers.max_health)
+			ent->health = client->pers.max_health;
+
+		client->pers.health = ent->health;
+		client->next_heal_time = level.time + 1.0f;
+	}
+
 	if (deathmatch->value &&
 		client->pers.spectator != client->resp.spectator &&
 		(level.time - client->respawn_time) >= 5) {
@@ -1802,4 +1826,18 @@ void ClientBeginServerFrame (edict_t *ent)
 			PlayerTrail_Add (ent->s.old_origin);
 
 	client->latched_buttons = 0;
+
+	//I have no fucking idea how this code works or why it does what it does. but I dont care. This is now a feature.
+	if (ent->client)
+	{
+		float m = ent->client->pers.speed_multiplier;
+
+		ent->velocity[0] *= m;
+		ent->client->ps.pmove.velocity[0] *= m;
+
+		ent->velocity[1] *= m;
+		ent->client->ps.pmove.velocity[1] *= m;
+
+	}
+
 }

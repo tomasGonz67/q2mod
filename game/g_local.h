@@ -30,6 +30,9 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 // the "gameversion" client command will print this plus compile date
 #define	GAMEVERSION	"baseq2"
 
+#define BASE_RUN_SPEED 300
+
+
 // protocol bytes that can be directly added to messages
 #define	svc_muzzleflash		1
 #define	svc_muzzleflash2	2
@@ -180,6 +183,7 @@ typedef enum
 #define PNOISE_SELF				0
 #define PNOISE_WEAPON			1
 #define PNOISE_IMPACT			2
+
 
 
 // edict->movetype values
@@ -852,6 +856,14 @@ typedef struct
 	int			max_cells;
 	int			max_slugs;
 
+	int			level;
+	int			xp;
+	int			xp_to_next;
+	int			max_armor;
+	float		damage_multiplier;
+	float		speed_multiplier;
+	float		health_regen;
+	int			heal_amount;
 	gitem_t		*weapon;
 	gitem_t		*lastweapon;
 
@@ -882,12 +894,12 @@ struct gclient_s
 	// known to server
 	player_state_t	ps;				// communicated by server to clients
 	int				ping;
-
+	float		armor_multiplier;
 	// private to game
 	client_persistant_t	pers;
 	client_respawn_t	resp;
 	pmove_state_t		old_pmove;	// for detecting out-of-pmove changes
-
+	float       next_heal_time; //im so tired lmfao.
 	qboolean	showscores;			// set layout stat
 	qboolean	showinventory;		// set layout stat
 	qboolean	showhelp;
@@ -1055,6 +1067,10 @@ struct edict_s
 	int			max_health;
 	int			gib_health;
 	int			deadflag;
+
+
+
+
 	qboolean	show_hostile;
 
 	float		powerarmor_time;

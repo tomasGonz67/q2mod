@@ -1,0 +1,13 @@
+# Visual Studio workspace & index
+.vs/
+
+# Ignore all debug/release build dirs
+**/debug/
+**/release/
+
+# Ignore per-user VS project settings
+*.vcxproj.user
+
+# (optional) OS cruft
+Thumbs.db
+*.DS_Store

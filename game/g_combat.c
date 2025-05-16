@@ -21,6 +21,19 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #include "g_local.h"
 
+
+static const int xpThresholds[] = {
+	0,    // level 0? I think?
+	0,    // level 1
+	100,  // level 2
+	200,  // level 3
+	300,  // level 4
+	400, // level 5
+	500, // level 6
+};
+
+#define MAX_LEVEL 6
+
 /*
 ============
 CanDamage
@@ -89,41 +102,114 @@ qboolean CanDamage (edict_t *targ, edict_t *inflictor)
 Killed
 ============
 */
-void Killed (edict_t *targ, edict_t *inflictor, edict_t *attacker, int damage, vec3_t point)
+void Killed(edict_t* targ, edict_t* inflictor, edict_t* attacker, int damage, vec3_t point)
 {
+	// ——— existing death logic (unchanged) ———
 	if (targ->health < -999)
 		targ->health = -999;
 
 	targ->enemy = attacker;
 
+	// count monster kills, etc…
 	if ((targ->svflags & SVF_MONSTER) && (targ->deadflag != DEAD_DEAD))
 	{
-//		targ->svflags |= SVF_DEADMONSTER;	// now treat as a different content type
 		if (!(targ->monsterinfo.aiflags & AI_GOOD_GUY))
 		{
 			level.killed_monsters++;
 			if (coop->value && attacker->client)
 				attacker->client->resp.score++;
-			// medics won't heal monsters that they kill themselves
 			if (strcmp(attacker->classname, "monster_medic") == 0)
 				targ->owner = attacker;
 		}
 	}
 
-	if (targ->movetype == MOVETYPE_PUSH || targ->movetype == MOVETYPE_STOP || targ->movetype == MOVETYPE_NONE)
-	{	// doors, triggers, etc
-		targ->die (targ, inflictor, attacker, damage, point);
+	if (targ->movetype == MOVETYPE_PUSH ||
+		targ->movetype == MOVETYPE_STOP ||
+		targ->movetype == MOVETYPE_NONE)
+	{
+		targ->die(targ, inflictor, attacker, damage, point);
 		return;
 	}
 
 	if ((targ->svflags & SVF_MONSTER) && (targ->deadflag != DEAD_DEAD))
 	{
 		targ->touch = NULL;
-		monster_death_use (targ);
+		monster_death_use(targ);
 	}
 
-	targ->die (targ, inflictor, attacker, damage, point);
+	if (attacker
+		&& attacker->client
+		&& !(targ->client)                    
+		&& (targ->svflags & SVF_MONSTER)       
+		&& (targ->deadflag != DEAD_DEAD))
+	{
+		gclient_t* cl = attacker->client;
+
+		cl->pers.xp += 50;
+
+		gi.dprintf("%s gained 50 XP (total: %d)\n",
+			cl->pers.netname, cl->pers.xp);
+
+		{
+			int nextLevel = cl->pers.level + 1;
+			int nextXP = (nextLevel <= MAX_LEVEL
+				? xpThresholds[nextLevel]
+				: cl->pers.xp);
+			gi.cprintf(attacker, PRINT_HIGH,
+				"XP: %d   Next Level (%d) @ %d XP\n",
+				cl->pers.xp, nextLevel, nextXP);
+		}
+		while (cl->pers.level < MAX_LEVEL
+			&& cl->pers.xp >= xpThresholds[cl->pers.level + 1])
+		{
+			cl->pers.level++;
+
+			if (cl->pers.level == 2) {
+				cl->pers.max_health = 200;
+				gi.bprintf(PRINT_HIGH,"You have 200 health");
+			}
+
+			if (cl->pers.level == 3) {
+				cl->pers.speed_multiplier = 1.2f;
+				gi.bprintf(PRINT_HIGH, "You have jump?");
+			}
+			if (cl->pers.level == 4) {
+				cl->pers.damage_multiplier = 3.0f;
+				gi.bprintf(PRINT_HIGH, "power");
+			}
+			if (cl->pers.level == 5) {
+				gi.bprintf(PRINT_HIGH, "Life steal");
+			}
+			if (cl->pers.level == 6) {
+				cl->pers.heal_amount = 1;
+				gi.bprintf(PRINT_HIGH, "auto heal");
+			}
+			attacker->health = cl->pers.health = cl->pers.max_health;
+			gi.bprintf(PRINT_HIGH,
+				cl->pers.netname,
+				cl->pers.level);
+		}
+		if (cl->pers.level >= 5)
+		{
+			if (attacker->health > 0 && attacker->health < cl->pers.max_health)
+			{
+				int newh = attacker->health + 5;
+				if (newh > cl->pers.max_health)
+					newh = cl->pers.max_health;
+
+				attacker->health = newh;
+				cl->pers.health = newh;
+			}
+		}
+
+
+
+	}
+
+	// finally, let the normal death routine run
+	targ->die(targ, inflictor, attacker, damage, point);
 }
+
 
 
 /*
@@ -382,6 +468,21 @@ void T_Damage (edict_t *targ, edict_t *inflictor, edict_t *attacker, vec3_t dir,
 	int			asave;
 	int			psave;
 	int			te_sparks;
+
+
+	if (attacker && attacker->client) {
+		client = attacker->client;
+	}
+	else {
+		client = NULL;
+	}
+
+	if (client) {
+		damage = (int)(damage * client->pers.damage_multiplier);
+		if (damage < 1) {
+			damage = 1;
+		}
+	}
 
 	if (!targ->takedamage)
 		return;
